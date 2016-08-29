@@ -1,24 +1,18 @@
-/*
- * Copyright (c) 2007-2014 Kaazing Corporation. All rights reserved.
+/**
+ * Copyright 2007-2015, Kaazing Corporation. All rights reserved.
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
 package org.kaazing.k3po.junit.rules;
 
 import static java.lang.String.format;
@@ -27,6 +21,7 @@ import static org.kaazing.k3po.junit.rules.ScriptRunner.BarrierState.INITIAL;
 import static org.kaazing.k3po.junit.rules.ScriptRunner.BarrierState.NOTIFIED;
 import static org.kaazing.k3po.junit.rules.ScriptRunner.BarrierState.NOTIFYING;
 
+import java.lang.management.ManagementFactory;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
@@ -56,8 +51,10 @@ final class ScriptRunner implements Callable<ScriptPair> {
 
     private volatile boolean abortScheduled;
     private volatile Map<String, BarrierStateMachine> barriers;
+    private final List<String> overridenScriptProperties;
+    private static final int DISPOSE_TIMEOUT = isDebugging() ? 0: 5000;
 
-    ScriptRunner(URL controlURL, List<String> names, Latch latch) {
+    ScriptRunner(URL controlURL, List<String> names, Latch latch, List<String> overridenScriptProperties) {
 
         if (names == null) {
             throw new NullPointerException("names");
@@ -71,9 +68,18 @@ final class ScriptRunner implements Callable<ScriptPair> {
         this.names = names;
         this.latch = latch;
         this.barriers = new HashMap<String, ScriptRunner.BarrierStateMachine>();
+        this.overridenScriptProperties = overridenScriptProperties;
     }
 
     public void abort() {
+        // logging with system.out as I don't believe there is a standard junit logger, in the future
+        // we will send this on the wire to appear in the diff (https://github.com/k3po/k3po/issues/332)
+        System.out.println(
+                "K3po Script Runner is sending an abort!\n Aborts may cause K3po to falsely fail the test if K3po\n"
+                + "is still processing a backlog of messages.  This is often the case in junit tests that have low\n"
+                + "timeout exceptions (less than 5 secs) and are running on somewhat limited hardware (travis CI and build"
+                + " machines)\n"
+                + "see https://github.com/k3po/k3po/issues/332 for more details");
         this.abortScheduled = true;
         latch.notifyAbort();
     }
@@ -92,6 +98,7 @@ final class ScriptRunner implements Callable<ScriptPair> {
             // send PREPARE command
             PrepareCommand prepare = new PrepareCommand();
             prepare.setNames(names);
+            prepare.setOverriddenScriptProperties(overridenScriptProperties);
 
             controller.writeCommand(prepare);
 
@@ -261,7 +268,6 @@ final class ScriptRunner implements Callable<ScriptPair> {
 
         @Override
         public void initial() {
-            System.out.println("Hello");
             synchronized (this) {
                 this.state = NOTIFYING;
                 for (BarrierStateListener listener : stateListeners) {
@@ -312,10 +318,9 @@ final class ScriptRunner implements Callable<ScriptPair> {
     }
 
     public void dispose() throws Exception {
-        controller.dispose();
         try {
-            // Give 5 seconds for cleanup to occur
-            CommandEvent event = controller.readEvent(5000, MILLISECONDS);
+            controller.dispose();
+            CommandEvent event = controller.readEvent();
 
             // ensure it is the correct event
             switch (event.getKind()) {
@@ -325,8 +330,28 @@ final class ScriptRunner implements Callable<ScriptPair> {
             default:
                 throw new IllegalArgumentException("Unrecognized event kind: " + event.getKind());
             }
-        } finally {
+        } catch (Exception e) {
+            // TODO log this when we get a logger added to Junit, or remove need for this which always clean
+            // shutdown of k3po channels
+            e.printStackTrace();
+            // NOOP swallow exception as this is a clean up task that may fail in case setup didn't complete,
+            // expressions didn't get resolved. Etc.  This happens frequently when Junit Assume is used, as K3po
+            // will have inited the accept channels outside of the test method.
+        }
+        finally {
             controller.disconnect();
         }
+    }
+
+    private static boolean isDebugging() {
+        List<String> arguments = ManagementFactory.getRuntimeMXBean().getInputArguments();
+        for (final String argument : arguments) {
+            if ("-Xdebug".equals(argument)) {
+                return true;
+            } else if (argument.startsWith("-agentlib:jdwp")) {
+                return true;
+            }
+        }
+        return false;
     }
 }

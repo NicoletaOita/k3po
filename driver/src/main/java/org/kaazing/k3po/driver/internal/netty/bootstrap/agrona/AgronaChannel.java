@@ -1,5 +1,5 @@
-/*
- * Copyright 2014, Kaazing Corporation. All rights reserved.
+/**
+ * Copyright 2007-2015, Kaazing Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.kaazing.k3po.driver.internal.netty.bootstrap.agrona;
 
 import static org.jboss.netty.buffer.ChannelBuffers.dynamicBuffer;
 import static org.jboss.netty.channel.Channels.fireMessageReceived;
-import static uk.co.real_logic.agrona.BitUtil.SIZE_OF_INT;
+import static org.agrona.BitUtil.SIZE_OF_INT;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -29,8 +28,8 @@ import org.kaazing.k3po.driver.internal.netty.bootstrap.channel.AbstractChannel;
 import org.kaazing.k3po.driver.internal.netty.channel.ChannelAddress;
 import org.kaazing.k3po.driver.internal.netty.channel.agrona.AgronaChannelAddress;
 
-import uk.co.real_logic.agrona.MutableDirectBuffer;
-import uk.co.real_logic.agrona.concurrent.MessageHandler;
+import org.agrona.MutableDirectBuffer;
+import org.agrona.concurrent.MessageHandler;
 
 public abstract class AgronaChannel extends AbstractChannel<AgronaChannelConfig> {
 

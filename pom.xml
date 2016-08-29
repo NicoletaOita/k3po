@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.kaazing</groupId>
         <artifactId>community</artifactId>
-        <version>2.15</version>
+        <version>2.18</version>
     </parent>
 
     <artifactId>k3po.parent</artifactId>
@@ -32,6 +32,7 @@
         <module>junit</module>
         <module>examples</module>
         <module>k3po.pcap.converter</module>
+        <module>specification/amqp_0.9.1</module>
         <module>specification/amqp_1_0.jms</module>
         <module>specification/bbosh</module>
         <module>specification/http</module>
@@ -45,6 +46,8 @@
         <module>specification/socks5</module>
         <module>specification/sse</module>
         <module>specification/tcp</module>
+	    <module>specification/turn</module>
+        <module>specification/udp</module>
         <module>specification/tls</module>
         <module>specification/ws</module>
         <module>specification/wse</module>
@@ -60,6 +63,8 @@
         <require.java.version>1.8+</require.java.version>
         <!-- animal sniffer does not yet support Java8, see MANIMALSNIFFER-45 -->
         <animal.sniffer.skip>true</animal.sniffer.skip>
+	<!-- skipping because eclipse complains about javadoc and other non errors -->
+        <checkstyle.skip>true</checkstyle.skip>
     </properties>
 
     <profiles>
@@ -108,7 +113,7 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty</artifactId>
-                <version>3.9.0.Final</version>
+                <version>3.10.5.Final</version>
             </dependency>
 
             <dependency>

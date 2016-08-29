@@ -1,5 +1,5 @@
-/*
- * Copyright 2014, Kaazing Corporation. All rights reserved.
+/**
+ * Copyright 2007-2015, Kaazing Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.kaazing.k3po.driver.internal.netty.channel.agrona;
 
-import uk.co.real_logic.agrona.DirectBuffer;
-import uk.co.real_logic.agrona.concurrent.ringbuffer.RingBuffer;
+import org.agrona.DirectBuffer;
+import org.agrona.concurrent.ringbuffer.RingBuffer;
 
 public final class RingBufferChannelWriter implements ChannelWriter {
 
